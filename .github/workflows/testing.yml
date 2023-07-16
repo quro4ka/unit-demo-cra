@@ -1,5 +1,7 @@
 name: Test app
-on: pull_request
+on:
+  pull_request:
+    types: [opened, edited, reopened]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,5 +12,23 @@ jobs:
         run: npm ci
       - name: Test application
         run: npm run test
-      - name: Test e2e
+      - name: Install playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run tests
         run: npm run e2e
+      - name: Run test-ci
+        run: npm run test-ci
+  commitlint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install commitlint
+        run: |
+          npm install conventional-changelog-conventionalcommits
+          npm install commitlint@latest
+
+      - name: Validate PR commits with commitlint
+        if: github.event_name == 'pull_request'
+        run: npx commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
